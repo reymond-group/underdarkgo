@@ -1,0 +1,51 @@
+{
+    "data": [
+        {
+            "id": "surechembl_mqn_250",
+            "name": "SureChEMBL (MQN 250)",
+            "path": "data/SureChEMBL/MQN/",
+            "indices": "mqn_250.dat",
+	    "coordinates": "mqn_250.xyz",
+            "size": 250,
+            "data_types": [
+                "uint16",
+                "uint16",
+                "uint16"
+            ],
+            "details_smiles": {
+                "file": "mqn.smiles",
+		"index": "mqn.smiles.index"
+            },
+	    "details_ids": {
+            	"file": "mqn.ids",
+		"index": "mqn.ids.index"
+            },
+            "details_coordinates": {
+                "file": "mqn.full.xyz",
+		"index": "mqn.full.xyz.index"
+            },
+            "maps": [
+                {
+                    "id": "hac",
+                    "name": "Heavy Atom Count (HAC)",
+                    "map": "hac_250.map",
+                    "data_types": [
+                        "float32",
+                        "float32",
+                        "float32"
+                    ]
+                },
+                {
+                    "id": "ringc",
+                    "name": "Ring Count",
+                    "map": "ringc_250.map",
+                    "data_types": [
+                        "float32",
+                        "float32",
+                        "float32"
+                    ]
+                }
+            ]
+        }
+    ]
+}
