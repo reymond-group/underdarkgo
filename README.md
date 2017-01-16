@@ -25,3 +25,7 @@ Update profile
 ```
 source ~/.profile
 ```
+Get the socket.io package
+```
+go get github.com/googollee/go-socket.io
+```
