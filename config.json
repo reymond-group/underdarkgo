@@ -4,7 +4,7 @@
             "id": "surechembl",
             "name": "SureChEMBL",
             "description": "The SureChEMBL patent informatino database.",
-            "directory": "data/SureChEMBL",
+            "directory": "SureChEMBL",
             "smilesFile": "surechembl.smiles",
             "smilesIndicesFile": "surechembl.smiles.index",
             "idsFile": "surechembl.ids",
@@ -37,6 +37,12 @@
                                     "name": "Heavy Atom Count",
                                     "description": "The number of heavy (non-hydrogen) atoms in the molecule.",
                                     "mapFile": "surechembl.mqn.250.hac.map"
+                                },
+                                {
+                                    "id": "ringc",
+                                    "name": "Ring Count",
+                                    "description": "The number of rings in the molecule.",
+                                    "mapFile": "surechembl.mqn.250.ringc.map"
                                 }
                             ]
                         }
