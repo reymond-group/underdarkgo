@@ -23,7 +23,7 @@
                             "name": "250",
                             "description": "Binned with a resolution of 250 x 250 x 250.",
                             "resolution": 250,
-                            "data_types": [
+                            "dataTypes": [
                                 "uint16",
                                 "uint16",
                                 "uint16"

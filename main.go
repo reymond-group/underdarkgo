@@ -28,11 +28,13 @@ type InitResponseMessage struct {
 type VariantResponseMessage struct {
 	Command string `json:"cmd"`
 	Content string `json:"msg"`
+	Id      string `json:"id"`
 }
 
 type MapResponseMessage struct {
 	Command string `json:"cmd"`
 	Content string `json:"msg"`
+	Id      string `json:"id"`
 }
 
 type BinPreviewResponseMessage struct {
@@ -129,7 +131,6 @@ func underdarkInit(data []string) InitResponseMessage {
 
 func underdarkLoadVariant(data []string) VariantResponseMessage {
 	variantId := data[0]
-
 	buf, err := ioutil.ReadFile(variants[variantId].CoordinatesFile)
 
 	if err != nil {
@@ -139,6 +140,7 @@ func underdarkLoadVariant(data []string) VariantResponseMessage {
 	return VariantResponseMessage{
 		Command: "load:variant",
 		Content: string(buf),
+		Id:      variantId,
 	}
 }
 
@@ -154,6 +156,7 @@ func underdarkLoadMap(data []string) MapResponseMessage {
 	return MapResponseMessage{
 		Command: "load:map",
 		Content: string(buf),
+		Id:      colorMapId,
 	}
 }
 
