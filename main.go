@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -19,6 +23,32 @@ type RequestMessage struct {
 type InitResponseMessage struct {
 	Command string        `json:"cmd"`
 	Content Configuration `json:"msg"`
+}
+
+type VariantResponseMessage struct {
+	Command string `json:"cmd"`
+	Content string `json:"msg"`
+}
+
+type MapResponseMessage struct {
+	Command string `json:"cmd"`
+	Content string `json:"msg"`
+}
+
+type BinPreviewResponseMessage struct {
+	Command string `json:"cmd"`
+	Smiles  string `json:"smiles"`
+	Index   string `json:"index"`
+	BinSize string `json:"binSize"`
+}
+
+type BinResponseMessage struct {
+	Command string   `json:"cmd"`
+	Smiles  []string `json:"smiles"`
+	Ids     []string `json:"ids"`
+	Coords  []string `json:"coordinates"`
+	Index   string   `json:"index"`
+	BinSize string   `json:"binSize"`
 }
 
 type ColorMap struct {
@@ -70,11 +100,19 @@ type Configuration struct {
 var dataDir string
 var config Configuration
 
-var variantIndices map[string][][]uint32
-var smilesIndices map[string][]uint32
-var smilesLengths map[string][]uint16
-var idIndices map[string][]uint32
-var idLengths map[string][]uint16
+var variantIndices = map[string][][]uint32{}
+var smilesOffsets = map[string][]uint32{}
+var smilesLengths = map[string][]uint16{}
+var idOffsets = map[string][]uint32{}
+var idLengths = map[string][]uint16{}
+var coordOffsets = map[string][]uint32{}
+var coordLengths = map[string][]uint16{}
+
+// Allow fast access by id
+var databases = map[string]Database{}
+var fingerprints = map[string]Fingerprint{}
+var variants = map[string]Variant{}
+var colorMaps = map[string]ColorMap{}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -84,8 +122,131 @@ var upgrader = websocket.Upgrader{
 
 func underdarkInit(data []string) InitResponseMessage {
 	return InitResponseMessage{
-		Command: "cmd",
+		Command: "init",
 		Content: config,
+	}
+}
+
+func underdarkLoadVariant(data []string) VariantResponseMessage {
+	variantId := data[0]
+
+	buf, err := ioutil.ReadFile(variants[variantId].CoordinatesFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return VariantResponseMessage{
+		Command: "load:variant",
+		Content: string(buf),
+	}
+}
+
+func underdarkLoadMap(data []string) MapResponseMessage {
+	colorMapId := data[0]
+
+	buf, err := ioutil.ReadFile(colorMaps[colorMapId].MapFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return MapResponseMessage{
+		Command: "load:map",
+		Content: string(buf),
+	}
+}
+
+func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
+	databaseId := data[0]
+	variantId := data[1]
+	binIndex, _ := strconv.Atoi(data[2])
+
+	file, err := os.Open(databases[databaseId].SmilesFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer file.Close()
+
+	// Get the indices in the bin
+	compounds := variantIndices[variantId][binIndex]
+
+	smilesOffset := smilesOffsets[databaseId][compounds[0]]
+	smilesLength := smilesLengths[databaseId][compounds[0]]
+
+	buf := make([]byte, int64(smilesLength))
+	rn, err := file.ReadAt(buf, int64(smilesOffset))
+
+	return BinPreviewResponseMessage{
+		Command: "load:binpreview",
+		Smiles:  string(buf[:rn-1]),
+		Index:   data[2],
+		BinSize: strconv.Itoa(len(compounds)),
+	}
+}
+
+func underdarkLoadBin(data []string) BinResponseMessage {
+	databaseId := data[0]
+	fingerprintId := data[1]
+	variantId := data[2]
+	binIndex, _ := strconv.Atoi(data[3])
+
+	smilesFile, err := os.Open(databases[databaseId].SmilesFile)
+	idsFile, err := os.Open(databases[databaseId].IdsFile)
+	coordsFile, err := os.Open(fingerprints[fingerprintId].CoordinatesFile)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer smilesFile.Close()
+	defer idsFile.Close()
+	defer coordsFile.Close()
+
+	// Get the indices in the bin
+	compounds := variantIndices[variantId][binIndex]
+
+	length := len(compounds)
+	smiles := make([]string, length)
+	ids := make([]string, length)
+	coords := make([]string, length)
+
+	for i := 0; i < length; i++ {
+		smilesOffset := smilesOffsets[databaseId][compounds[i]]
+		smilesLength := smilesLengths[databaseId][compounds[i]]
+
+		idOffset := idOffsets[databaseId][compounds[i]]
+		idLength := idLengths[databaseId][compounds[i]]
+
+		coordOffset := coordOffsets[fingerprintId][compounds[i]]
+		coordLength := coordLengths[fingerprintId][compounds[i]]
+
+		buf := make([]byte, int64(smilesLength))
+		rn, err := smilesFile.ReadAt(buf, int64(smilesOffset))
+		smiles[i] = string(buf[:rn-1])
+
+		buf = make([]byte, int64(idLength))
+		rn, err = idsFile.ReadAt(buf, int64(idOffset))
+		ids[i] = string(buf[:rn-1])
+
+		buf = make([]byte, int64(coordLength))
+		rn, err = coordsFile.ReadAt(buf, int64(coordOffset))
+		coords[i] = string(buf[:rn-1])
+
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	return BinResponseMessage{
+		Command: "load:bin",
+		Smiles:  smiles,
+		Ids:     ids,
+		Coords:  coords,
+		Index:   data[3],
+		BinSize: strconv.Itoa(len(compounds)),
 	}
 }
 
@@ -108,9 +269,19 @@ func serveUnderdark(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if msg.Command == "init" {
+		switch msg.Command {
+		case "init":
 			err = c.WriteJSON(underdarkInit(msg.Content))
+		case "load:variant":
+			err = c.WriteJSON(underdarkLoadVariant(msg.Content))
+		case "load:map":
+			err = c.WriteJSON(underdarkLoadMap(msg.Content))
+		case "load:binpreview":
+			err = c.WriteJSON(underdarkLoadBinPreview(msg.Content))
+		case "load:bin":
+			err = c.WriteJSON(underdarkLoadBin(msg.Content))
 		}
+
 		if err != nil {
 			log.Println("Error while responding:", err)
 			break
@@ -138,39 +309,66 @@ func main() {
 }
 
 func loadIndices() {
-	// Initialize the maps holding the indices
-	variantIndices := make(map[string][][]uint32)
-	smilesIndices := make(map[string][]uint32)
-	smilesLengths := make(map[string][]uint16)
-	idIndices := make(map[string][]uint32)
-	idLengths := make(map[string][]uint16)
-
 	loopConfig(func(database *Database, path string) {
 		// Loading smiles and id indices and lengths
-		smilesIndices[database.Id] = make([]uint32, 10000000)
-		smilesLengths[database.Id] = make([]uint16, 10000000)
-		idIndices[database.Id] = make([]uint32, 10000000)
-		idLengths[database.Id] = make([]uint16, 10000000)
+		// Smiles and id indices should have the same length
+		smilesLength, _ := countLines(database.SmilesIndicesFile)
+		idsLength, _ := countLines(database.IdIndicesFile)
 
-		for i := 0; i < 10000000; i++ {
-			smilesIndices[database.Id][i] = 100
-			smilesLengths[database.Id][i] = 100
-			idIndices[database.Id][i] = 100
-			idLengths[database.Id][i] = 100
+		smilesOffsets[database.Id] = make([]uint32, smilesLength)
+		smilesLengths[database.Id] = make([]uint16, smilesLength)
+		idOffsets[database.Id] = make([]uint32, idsLength)
+		idLengths[database.Id] = make([]uint16, idsLength)
+
+		log.Println("Reading " + database.SmilesIndicesFile + " ...")
+
+		err := readIndexFile(database.SmilesIndicesFile, smilesOffsets[database.Id], smilesLengths[database.Id])
+
+		if err != nil {
+			log.Fatal(err)
 		}
+
+		log.Println("Reading " + database.IdIndicesFile + " ...")
+
+		err = readIndexFile(database.IdIndicesFile, idOffsets[database.Id], idLengths[database.Id])
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	}, func(fingerprint *Fingerprint, path string) {
 		// Loading indices for coordinates
+		coordsLength, _ := countLines(fingerprint.CoordinateIndicesFile)
+
+		coordOffsets[fingerprint.Id] = make([]uint32, coordsLength)
+		coordLengths[fingerprint.Id] = make([]uint16, coordsLength)
+
+		log.Println("Reading " + fingerprint.CoordinateIndicesFile + " ...")
+
+		err := readIndexFile(fingerprint.CoordinateIndicesFile, coordOffsets[fingerprint.Id], coordLengths[fingerprint.Id])
+
+		if err != nil {
+			log.Fatal(err)
+		}
 
 	}, func(variant *Variant, path string) {
 		// Loading the bin contents (indices pointing to the
 		// smiles and ids
-		variantIndices[variant.Id] = make([][]uint32, 2)
-		variantIndices[variant.Id][0] = make([]uint32, 10000000)
-		variantIndices[variant.Id][1] = make([]uint32, 10000000)
+
+		indicesLength, _ := countLines(variant.IndicesFile)
+
+		variantIndices[variant.Id] = make([][]uint32, indicesLength)
+
+		log.Println("Reading " + variant.IndicesFile + " ...")
+
+		err := readVariantIndexFile(variant.IndicesFile, variant.Id)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 	}, func(colorMap *ColorMap, path string) {
 		// Nothing to do here
-	}, false)
+	}, false, false)
 }
 
 func loadConfig() Configuration {
@@ -221,6 +419,9 @@ func checkConfig() {
 		if exists, _ := exists(database.IdIndicesFile); !exists {
 			nf = append(nf, database.IdIndicesFile)
 		}
+
+		databases[database.Id] = *database
+
 	}, func(fingerprint *Fingerprint, path string) {
 		fingerprint.CoordinatesFile = path + fingerprint.CoordinatesFile
 		fingerprint.CoordinateIndicesFile = path + fingerprint.CoordinateIndicesFile
@@ -232,6 +433,9 @@ func checkConfig() {
 		if exists, _ := exists(fingerprint.CoordinateIndicesFile); !exists {
 			nf = append(nf, fingerprint.CoordinateIndicesFile)
 		}
+
+		fingerprints[fingerprint.Id] = *fingerprint
+
 	}, func(variant *Variant, path string) {
 		variant.IndicesFile = path + variant.IndicesFile
 		variant.CoordinatesFile = path + variant.CoordinatesFile
@@ -243,13 +447,18 @@ func checkConfig() {
 		if exists, _ := exists(variant.CoordinatesFile); !exists {
 			nf = append(nf, variant.CoordinatesFile)
 		}
+
+		variants[variant.Id] = *variant
+
 	}, func(colorMap *ColorMap, path string) {
 		colorMap.MapFile = path + colorMap.MapFile
 
 		if exists, _ := exists(colorMap.MapFile); !exists {
 			nf = append(nf, colorMap.MapFile)
 		}
-	}, true)
+
+		colorMaps[colorMap.Id] = *colorMap
+	}, true, true)
 
 	if len(nf) > 0 {
 		fmt.Println("The following files were not found. Please add the files or remove the entries from the config.")
@@ -268,7 +477,7 @@ func loopConfig(databaseCallback func(*Database, string),
 	fingerprintCallback func(*Fingerprint, string),
 	variantCallback func(*Variant, string),
 	colorMapCallback func(*ColorMap, string),
-	updatePath bool) {
+	updatePath bool, updateId bool) {
 	for i, _ := range config.Databases {
 		database := &config.Databases[i]
 		var databasePath string
@@ -281,28 +490,40 @@ func loopConfig(databaseCallback func(*Database, string),
 		for j, _ := range database.Fingerprints {
 			fingerprint := &database.Fingerprints[j]
 			var fingerprintPath string
+			if updateId {
+				fingerprint.Id = database.Id + "." + fingerprint.Id
+			}
 			if updatePath {
 				fingerprintPath = concatPath(databasePath, fingerprint.Directory)
 				fingerprintCallback(fingerprint, fingerprintPath)
 			} else {
 				fingerprintCallback(fingerprint, fingerprint.Directory)
 			}
+
 			for k, _ := range fingerprint.Variants {
 				variant := &fingerprint.Variants[k]
 				var variantPath string
+				if updateId {
+					variant.Id = fingerprint.Id + "." + variant.Id
+				}
 				if updatePath {
 					variantPath = concatPath(fingerprintPath, variant.Directory)
 					variantCallback(variant, variantPath)
 				} else {
 					variantCallback(variant, variant.Directory)
 				}
+
 				for l, _ := range variant.ColorMaps {
 					colorMap := &variant.ColorMaps[l]
+					if updateId {
+						colorMap.Id = variant.Id + "." + colorMap.Id
+					}
 					if updatePath {
 						colorMapCallback(colorMap, variantPath)
 					} else {
 						colorMapCallback(colorMap, variant.Directory)
 					}
+
 				}
 			}
 		}
@@ -332,4 +553,70 @@ func exists(path string) (bool, error) {
 		return false, nil
 	}
 	return true, err
+}
+
+func countLines(path string) (int, error) {
+	r, err := os.Open(path)
+
+	if err != nil {
+		log.Fatal("Could not open file: " + path)
+	}
+
+	buf := make([]byte, 32*1024)
+	count := 0
+	lineSep := []byte{'\n'}
+
+	for {
+		c, err := r.Read(buf)
+		count += bytes.Count(buf[:c], lineSep)
+
+		if err == io.EOF {
+			return count, nil
+		} else if err != nil {
+			return count, err
+		}
+	}
+}
+
+func readIndexFile(path string, offsets []uint32, lengths []uint16) error {
+	r, err := os.Open(path)
+	scanner := bufio.NewScanner(r)
+
+	i := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		values := strings.Split(line, ",")
+
+		offset, _ := strconv.ParseUint(values[0], 10, 32)
+		length, _ := strconv.ParseUint(values[1], 10, 16)
+
+		offsets[i] = uint32(offset)
+		lengths[i] = uint16(length)
+
+		i++
+	}
+
+	return err
+}
+
+func readVariantIndexFile(path string, id string) error {
+	r, err := os.Open(path)
+	scanner := bufio.NewScanner(r)
+
+	i := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		values := strings.Split(line, ",")
+		n := len(values)
+		variantIndices[id][i] = make([]uint32, n)
+
+		for j := 0; j < n; j++ {
+			value, _ := strconv.ParseUint(values[j], 10, 32)
+			variantIndices[id][i][j] = uint32(value)
+		}
+
+		i++
+	}
+
+	return err
 }
