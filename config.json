@@ -36,13 +36,192 @@
                                     "id": "hac",
                                     "name": "Heavy Atom Count",
                                     "description": "The number of heavy (non-hydrogen) atoms in the molecule.",
-                                    "mapFile": "surechembl.mqn.250.hac.map"
+                                    "mapFile": "surechembl.mqn.250.hac.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
                                 },
                                 {
                                     "id": "ringc",
                                     "name": "Ring Count",
                                     "description": "The number of rings in the molecule.",
-                                    "mapFile": "surechembl.mqn.250.ringc.map"
+                                    "mapFile": "surechembl.mqn.250.ringc.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "smifp",
+                    "name": "SMIfp",
+                    "description": "A fingerprint calculated from the smiles string.",
+                    "directory": "SMIfp",
+                    "coordinatesFile": "surechembl.smifp.xyz",
+                    "coordinateIndicesFile": "surechembl.smifp.xyz.index",
+                    "variants": [
+                        {
+                            "id": "250",
+                            "name": "250",
+                            "description": "Binned with a resolution of 250 x 250 x 250.",
+                            "resolution": 250,
+                            "dataTypes": [
+                                "uint16",
+                                "uint16",
+                                "uint16"
+                            ],
+                            "directory": "250",
+                            "indicesFile": "surechembl.smifp.250.dat",
+                            "coordinatesFile": "surechembl.smifp.250.xyz",
+                            "maps": [
+                                {
+                                    "id": "a",
+                                    "name": "A",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.a.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "b",
+                                    "name": "B",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.b.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "c",
+                                    "name": "C",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.c.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "d",
+                                    "name": "D",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.d.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "e",
+                                    "name": "E",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.e.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "f",
+                                    "name": "F",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.f.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "g",
+                                    "name": "G",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.g.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "h",
+                                    "name": "H",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.h.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "i",
+                                    "name": "I",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.i.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "j",
+                                    "name": "J",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.j.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "k",
+                                    "name": "K",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.k.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "l",
+                                    "name": "L",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.l.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "m",
+                                    "name": "M",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.smifp.250.m.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
                                 }
                             ]
                         }
