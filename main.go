@@ -174,7 +174,6 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	defer file.Close()
 
 	// Get the indices in the bin
-	log.Println(variantId)
         compounds := variantIndices[variantId][binIndex]
 
         if len(compounds) < 1 {
@@ -614,8 +613,6 @@ func readIndexFile(path string, offsets []uint32, lengths []uint16) error {
 }
 
 func readVariantIndexFile(path string, id string) error {
-	log.Println(path)
-        log.Println(id)
         r, err := os.Open(path)
 	defer r.Close()
 	scanner := bufio.NewScanner(r)
@@ -641,10 +638,6 @@ func readVariantIndexFile(path string, id string) error {
 
 		i++
 	}
-        
-        count, err := countLines(path)
-        log.Println(count)
-        log.Println(i)
 
 	return err
 }
