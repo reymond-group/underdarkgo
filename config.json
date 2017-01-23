@@ -263,6 +263,54 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "id": "xfp",
+                    "name": "Xfp",
+                    "description": "The Xfp fingerprint.",
+                    "directory": "Xfp",
+                    "coordinatesFile": "surechembl.xfp.xyz",
+                    "coordinateIndicesFile": "surechembl.xfp.xyz.index",
+                    "variants": [
+                        {
+                            "id": "250",
+                            "name": "250",
+                            "description": "Binned with a resolution of 250 x 250 x 250.",
+                            "resolution": 250,
+                            "dataTypes": [
+                                "uint16",
+                                "uint16",
+                                "uint16"
+                            ],
+                            "directory": "250",
+                            "indicesFile": "surechembl.xfp.250.dat",
+                            "coordinatesFile": "surechembl.xfp.250.xyz",
+                            "maps": [
+                                {
+                                    "id": "a",
+                                    "name": "A",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.xfp.250.a.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                },
+                                {
+                                    "id": "b",
+                                    "name": "B",
+                                    "description": "TBD.",
+                                    "mapFile": "surechembl.xfp.250.b.map",
+                                    "dataTypes": [
+                                        "float32",
+                                        "float32",
+                                        "float32"
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         }
