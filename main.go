@@ -173,13 +173,23 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	file, err := os.Open(databases[databaseId].SmilesFile)
 
 	if err != nil {
-		log.Fatal(err)
+	    log.Fatal(err)
 	}
 
 	defer file.Close()
 
 	// Get the indices in the bin
-	compounds := variantIndices[variantId][binIndex]
+        compounds := variantIndices[variantId][binIndex]
+
+        if len(compounds) < 1 {
+            log.Println("No compounds found at binIndex " + strconv.Itoa(binIndex))
+            return BinPreviewResponseMessage{
+                Command: "load:binpreview",
+                Smiles: "",
+                Index: "",
+                BinSize: "0",
+            }
+        }
 
 	smilesOffset := smilesOffsets[databaseId][compounds[0]]
 	smilesLength := smilesLengths[databaseId][compounds[0]]
@@ -644,8 +654,16 @@ func readIndexFile(path string, offsets []uint32, lengths []uint16) error {
 }
 
 func readVariantIndexFile(path string, id string) error {
-	r, err := os.Open(path)
+        r, err := os.Open(path)
+	defer r.Close()
 	scanner := bufio.NewScanner(r)
+        scanner.Split(bufio.ScanLines)
+
+        // The buffer in the scanner is to small for large bins, so increase it a bit
+        // Set the buffer size to 1024 * 1024 bytes (1 MB) ~ 1 million characters
+        const maxCapacity = 1024 * 1024;
+        buf := make([]byte, maxCapacity)
+        scanner.Buffer(buf, maxCapacity)
 
 	i := 0
 	for scanner.Scan() {
