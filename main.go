@@ -49,6 +49,7 @@ type BinResponseMessage struct {
 	Smiles  []string `json:"smiles"`
 	Ids     []string `json:"ids"`
 	Coords  []string `json:"coordinates"`
+	Fps     []string `json:"fps"`
 	Index   string   `json:"index"`
 	BinSize string   `json:"binSize"`
 }
@@ -74,13 +75,15 @@ type Variant struct {
 }
 
 type Fingerprint struct {
-	Id                    string    `json:"id"`
-	Name                  string    `json:"name"`
-	Description           string    `json:"description"`
-	Directory             string    `json:"directory"`
-	CoordinatesFile       string    `json:"coordinatesFile"`
-	CoordinateIndicesFile string    `json:"coordinateIndicesFile"`
-	Variants              []Variant `json:"variants"`
+	Id                     string    `json:"id"`
+	Name                   string    `json:"name"`
+	Description            string    `json:"description"`
+	Directory              string    `json:"directory"`
+	CoordinatesFile        string    `json:"coordinatesFile"`
+	CoordinateIndicesFile  string    `json:"coordinateIndicesFile"`
+	FingerprintsFile       string    `json:"fingerprintsFile"`
+	FingerprintIndicesFile string    `json:"fingerprintIndicesFile"`
+	Variants               []Variant `json:"variants"`
 }
 
 type Database struct {
@@ -109,6 +112,8 @@ var idOffsets = map[string][]uint32{}
 var idLengths = map[string][]uint16{}
 var coordOffsets = map[string][]uint32{}
 var coordLengths = map[string][]uint16{}
+var fpOffsets = map[string][]uint32{}
+var fpLengths = map[string][]uint16{}
 
 // Allow fast access by id
 var databases = map[string]Database{}
@@ -199,6 +204,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	smilesFile, err := os.Open(databases[databaseId].SmilesFile)
 	idsFile, err := os.Open(databases[databaseId].IdsFile)
 	coordsFile, err := os.Open(fingerprints[fingerprintId].CoordinatesFile)
+	fpsFile, err := os.Open(fingerprints[fingerprintId].FingerprintsFile)
 
 	if err != nil {
 		log.Fatal(err)
@@ -215,6 +221,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	smiles := make([]string, length)
 	ids := make([]string, length)
 	coords := make([]string, length)
+	fps := make([]string, length)
 
 	for i := 0; i < length; i++ {
 		smilesOffset := smilesOffsets[databaseId][compounds[i]]
@@ -225,6 +232,9 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 		coordOffset := coordOffsets[fingerprintId][compounds[i]]
 		coordLength := coordLengths[fingerprintId][compounds[i]]
+
+		fpOffset := fpOffsets[fingerprintId][compounds[i]]
+		fpLength := fpLengths[fingerprintId][compounds[i]]
 
 		buf := make([]byte, int64(smilesLength))
 		rn, err := smilesFile.ReadAt(buf, int64(smilesOffset))
@@ -238,6 +248,10 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		rn, err = coordsFile.ReadAt(buf, int64(coordOffset))
 		coords[i] = string(buf[:rn-1])
 
+		buf = make([]byte, int64(fpLength))
+		rn, err = fpsFile.ReadAt(buf, int64(fpOffset))
+		fps[i] = string(buf[:rn-1])
+
 		if err != nil {
 			log.Println(err)
 		}
@@ -248,6 +262,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		Smiles:  smiles,
 		Ids:     ids,
 		Coords:  coords,
+		Fps:     fps,
 		Index:   data[3],
 		BinSize: strconv.Itoa(len(compounds)),
 	}
@@ -304,7 +319,7 @@ func main() {
 	checkConfig()
 	loadIndices()
 
-	http.Handle("/", http.FileServer(http.Dir("./asset")))
+	http.Handle("/", http.FileServer(http.Dir("./assets")))
 	http.HandleFunc("/underdark", serveUnderdark)
 
 	log.Println("Serving at localhost:8080 ...")
@@ -340,15 +355,26 @@ func loadIndices() {
 		}
 
 	}, func(fingerprint *Fingerprint, path string) {
-		// Loading indices for coordinates
+		// Loading indices for coordinates and fingerprints
 		coordsLength, _ := countLines(fingerprint.CoordinateIndicesFile)
+		fpsLength, _ := countLines(fingerprint.FingerprintIndicesFile)
 
 		coordOffsets[fingerprint.Id] = make([]uint32, coordsLength)
 		coordLengths[fingerprint.Id] = make([]uint16, coordsLength)
+		fpOffsets[fingerprint.Id] = make([]uint32, fpsLength)
+		fpLengths[fingerprint.Id] = make([]uint16, fpsLength)
 
 		log.Println("Reading " + fingerprint.CoordinateIndicesFile + " ...")
 
 		err := readIndexFile(fingerprint.CoordinateIndicesFile, coordOffsets[fingerprint.Id], coordLengths[fingerprint.Id])
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("Reading " + fingerprint.FingerprintIndicesFile + " ...")
+
+		err = readIndexFile(fingerprint.FingerprintIndicesFile, fpOffsets[fingerprint.Id], fpLengths[fingerprint.Id])
 
 		if err != nil {
 			log.Fatal(err)
@@ -375,7 +401,11 @@ func loadIndices() {
 }
 
 func loadConfig() Configuration {
-	buffer, err := ioutil.ReadFile("config.json")
+	if !strings.HasSuffix(dataDir, "/") {
+		dataDir += "/"
+	}
+
+	buffer, err := ioutil.ReadFile(dataDir + "config.json")
 
 	if err != nil {
 		log.Fatal(err)
@@ -429,12 +459,23 @@ func checkConfig() {
 		fingerprint.CoordinatesFile = path + fingerprint.CoordinatesFile
 		fingerprint.CoordinateIndicesFile = path + fingerprint.CoordinateIndicesFile
 
+		fingerprint.FingerprintsFile = path + fingerprint.FingerprintsFile
+		fingerprint.FingerprintIndicesFile = path + fingerprint.FingerprintIndicesFile
+
 		if exists, _ := exists(fingerprint.CoordinatesFile); !exists {
 			nf = append(nf, fingerprint.CoordinatesFile)
 		}
 
 		if exists, _ := exists(fingerprint.CoordinateIndicesFile); !exists {
 			nf = append(nf, fingerprint.CoordinateIndicesFile)
+		}
+
+		if exists, _ := exists(fingerprint.FingerprintsFile); !exists {
+			nf = append(nf, fingerprint.FingerprintsFile)
+		}
+
+		if exists, _ := exists(fingerprint.FingerprintIndicesFile); !exists {
+			nf = append(nf, fingerprint.FingerprintIndicesFile)
 		}
 
 		fingerprints[fingerprint.Id] = *fingerprint
