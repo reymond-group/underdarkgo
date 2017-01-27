@@ -688,18 +688,26 @@ func search(path string, terms []string) ([]uint32, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
 
+	for i, term := range terms {
+		terms[i] = strings.ToLower(term)
+	}
+
 	const maxCapacity = 1024 * 1024
 	buf := make([]byte, maxCapacity)
 	scanner.Buffer(buf, maxCapacity)
 
-	results := make([]uint32, len(terms))
+	results := make([][]uint32, len(terms))
+
+	for i := 0; i < len(terms); i++ {
+		results[i] = make([]uint32, 0)
+	}
 
 	i := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		for j, term := range terms {
-			if strings.Contains(strings.ToLower(line), strings.ToLower(term)) {
-				results[j] = i
+			if strings.Contains(strings.ToLower(line), term) {
+				results[j] = append(results[j], uint32(i))
 			}
 		}
 	}
