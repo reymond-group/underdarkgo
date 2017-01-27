@@ -54,6 +54,10 @@ type BinResponseMessage struct {
 	BinSize string   `json:"binSize"`
 }
 
+type SearchResponseMessage struct {
+	BinIndices []uint32 `json:"binIndices"`
+}
+
 type ColorMap struct {
 	Id          string   `json:"id"`
 	Name        string   `json:"name"`
@@ -278,6 +282,23 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	}
 }
 
+func underdarkSearchIds(data []string) SearchResponseMessage {
+	// The first two strings are the database and fingerprint ids,
+	// from there on, the strings are search queries
+	databaseId := data[0]
+	fingerprintId := data[1]
+	searchTerms := data[2:len(data)]
+
+	result, _ := search(fingerprints[fingerprintId].fingerprintsFile, searchTerms)
+
+	return SearchResponseMessage{}
+}
+
+func underdarkSearchSmiles(data []string) SearchResponseMessage {
+
+	return SearchResponseMessage{}
+}
+
 func serveUnderdark(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 
@@ -308,6 +329,10 @@ func serveUnderdark(w http.ResponseWriter, r *http.Request) {
 			err = c.WriteJSON(underdarkLoadBinPreview(msg.Content))
 		case "load:bin":
 			err = c.WriteJSON(underdarkLoadBin(msg.Content))
+		case "search:ids":
+			err = c.WriteJSON(underdarkSearchIds(msg.Content))
+		case "search:smiles":
+			err = c.WriteJSON(underdarkSerachSmiles(msg.Content))
 		}
 
 		if err != nil {
@@ -710,7 +735,31 @@ func search(path string, terms []string) ([]uint32, error) {
 				results[j] = append(results[j], uint32(i))
 			}
 		}
+
+		i++
 	}
 
 	return results, err
+}
+
+func readLine(path string, int line) (string, error) {
+	r, err := os.Open(path)
+	scanner := bufio.NewScanner(r)
+	scanner.Split(bufio.ScanLines)
+
+	const maxCapacity = 1024 * 1024
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
+
+	var result string
+
+	i := 0
+	for scanner.Scan() {
+		if i == lin {
+			result = scanner.Text()
+			break
+		}
+	}
+
+	return result, err
 }
