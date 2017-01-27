@@ -55,7 +55,7 @@ type BinResponseMessage struct {
 }
 
 type SearchResponseMessage struct {
-	BinIndices []uint32 `json:"binIndices"`
+	BinIndices [][]uint32 `json:"binIndices"`
 }
 
 type ColorMap struct {
@@ -227,6 +227,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	defer smilesFile.Close()
 	defer idsFile.Close()
 	defer coordsFile.Close()
+	defer fpsFile.Close()
 
 	// Get the indices in the bin
 	compounds := variantIndices[variantId][binIndex]
@@ -283,14 +284,26 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 }
 
 func underdarkSearchIds(data []string) SearchResponseMessage {
-	// The first two strings are the database and fingerprint ids,
+	// The first two strings are the fingerprint and variant ids,
 	// from there on, the strings are search queries
-	databaseId := data[0]
-	fingerprintId := data[1]
+	/* log.Println(data)
+
+	fingerprintId :=  data[0]
+	variantId := data[1]
 	searchTerms := data[2:len(data)]
 
-	result, _ := search(fingerprints[fingerprintId].fingerprintsFile, searchTerms)
+	result, err := search(variantId, fingerprints[fingerprintId].FingerprintsFile, searchTerms)
 
+	log.Println(result)
+
+	if err != nil {
+		log.Print("Error while searching:", err)
+		return SearchResponseMessage{}
+	}
+
+	return SearchResponseMessage{
+		BinIndices: result,
+	}*/
 	return SearchResponseMessage{}
 }
 
@@ -332,7 +345,7 @@ func serveUnderdark(w http.ResponseWriter, r *http.Request) {
 		case "search:ids":
 			err = c.WriteJSON(underdarkSearchIds(msg.Content))
 		case "search:smiles":
-			err = c.WriteJSON(underdarkSerachSmiles(msg.Content))
+			err = c.WriteJSON(underdarkSearchSmiles(msg.Content))
 		}
 
 		if err != nil {
@@ -708,42 +721,7 @@ func readVariantIndexFile(path string, id string) error {
 	return err
 }
 
-func search(path string, terms []string) ([]uint32, error) {
-	r, err := os.Open(path)
-	scanner := bufio.NewScanner(r)
-	scanner.Split(bufio.ScanLines)
-
-	for i, term := range terms {
-		terms[i] = strings.ToLower(term)
-	}
-
-	const maxCapacity = 1024 * 1024
-	buf := make([]byte, maxCapacity)
-	scanner.Buffer(buf, maxCapacity)
-
-	results := make([][]uint32, len(terms))
-
-	for i := 0; i < len(terms); i++ {
-		results[i] = make([]uint32, 0)
-	}
-
-	i := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-		for j, term := range terms {
-			if strings.Contains(strings.ToLower(line), term) {
-				results[j] = append(results[j], uint32(i))
-			}
-		}
-
-		i++
-	}
-
-	return results, err
-}
-
-func readLine(path string, int line) (string, error) {
-	r, err := os.Open(path)
+func readLine(r *os.File, line int) (string, error) {
 	scanner := bufio.NewScanner(r)
 	scanner.Split(bufio.ScanLines)
 
@@ -755,11 +733,11 @@ func readLine(path string, int line) (string, error) {
 
 	i := 0
 	for scanner.Scan() {
-		if i == lin {
+		if i == line {
 			result = scanner.Text()
 			break
 		}
 	}
 
-	return result, err
+	return result, nil
 }
