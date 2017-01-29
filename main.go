@@ -55,8 +55,9 @@ type BinResponseMessage struct {
 }
 
 type SearchResponseMessage struct {
-	Command    string     `json:"cmd"`
-	BinIndices [][]uint32 `json:"binIndices"`
+	Command     string     `json:"cmd"`
+	BinIndices  [][]uint32 `json:"binIndices"`
+	SearchTerms []string   `json:"searchTerms"`
 }
 
 type ColorMap struct {
@@ -260,19 +261,23 @@ func underdarkSearch(data []string) SearchResponseMessage {
 	variantId := data[1]
 	searchTerms := data[2:len(data)]
 
-	result, err := search(fingerprintId, variantId, searchTerms)
+	filteredSearchTerms := filterSearchTerms(searchTerms)
+
+	result, err := search(fingerprintId, variantId, filteredSearchTerms)
 
 	if err != nil {
 		log.Print("Error while searching:", err)
 		return SearchResponseMessage{
-			Command:    "search:infos",
-			BinIndices: nil,
+			Command:     "search:infos",
+			BinIndices:  nil,
+			SearchTerms: filteredSearchTerms,
 		}
 	}
 
 	return SearchResponseMessage{
-		Command:    "search:infos",
-		BinIndices: result,
+		Command:     "search:infos",
+		BinIndices:  result,
+		SearchTerms: filteredSearchTerms,
 	}
 }
 
@@ -682,4 +687,16 @@ func readLine(r *os.File, line int) (string, error) {
 	}
 
 	return result, nil
+}
+
+func filterSearchTerms(terms []string) []string {
+	filtered := make([]string, 0)
+
+	for _, v := range terms {
+		if v != "" {
+			filtered = append(filtered, v)
+		}
+	}
+
+	return filtered
 }
