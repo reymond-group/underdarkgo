@@ -339,8 +339,8 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir("./assets")))
 	http.HandleFunc("/underdark", serveUnderdark)
 
-	log.Println("Serving at localhost:8080 ...")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Println("Serving at localhost:8081 ...")
+	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
 func loadIndices() {
