@@ -88,6 +88,8 @@ type Fingerprint struct {
 	InfosFile       string    `json:"infosFile"`
 	InfoIndicesFile string    `json:"infoIndicesFile"`
 	Variants        []Variant `json:"variants"`
+	Min             []float32 `json:"min"`
+	Max             []float32 `json:"max"`
 }
 
 type Database struct {
