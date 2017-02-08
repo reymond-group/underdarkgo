@@ -1,4 +1,5 @@
-# underdarkgo
+![Underdark Go](https://github.com/reymond-group/underdarkgo/blob/master/logo.png?raw=true)
+# Underdark Go
 
 ## Build
 Download go
