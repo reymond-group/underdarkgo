@@ -13,7 +13,17 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
+
+const writeWait = 10 * time.Second
+const pongWait = 60 * time.Second
+const pingPeriod = (pongWait * 9) / 10
+
+type Client struct {
+	conn *websocket.Conn
+	send chan RequestMessage
+}
 
 type RequestMessage struct {
 	Command string   `json:"cmd"`
@@ -283,45 +293,92 @@ func underdarkSearch(data []string) SearchResponseMessage {
 	}
 }
 
-func serveUnderdark(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
+func (c *Client) read() {
+	defer c.conn.Close()
 
-	if err != nil {
-		log.Print("Error during upgrade:", err)
-		return
-	}
-
-	defer c.Close()
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 
 	for {
 		msg := RequestMessage{}
-		err := c.ReadJSON(&msg)
+		err := c.conn.ReadJSON(&msg)
 
 		if err != nil {
-			log.Println("Error while reading message:", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				log.Printf("Error: %v", err)
+			}
 			break
 		}
 
-		switch msg.Command {
-		case "init":
-			err = c.WriteJSON(underdarkInit(msg.Content))
-		case "load:variant":
-			err = c.WriteJSON(underdarkLoadVariant(msg.Content))
-		case "load:map":
-			err = c.WriteJSON(underdarkLoadMap(msg.Content))
-		case "load:binpreview":
-			err = c.WriteJSON(underdarkLoadBinPreview(msg.Content))
-		case "load:bin":
-			err = c.WriteJSON(underdarkLoadBin(msg.Content))
-		case "search:infos":
-			err = c.WriteJSON(underdarkSearch(msg.Content))
-		}
-
-		if err != nil {
-			log.Println("Error while responding:", err)
-			break
+		select {
+		case c.send <- msg:
+		default:
+			close(c.send)
 		}
 	}
+}
+
+func (c *Client) write() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			var err error
+
+			switch message.Command {
+			case "init":
+				log.Println(underdarkInit(message.Content))
+				err = c.conn.WriteJSON(underdarkInit(message.Content))
+			case "load:variant":
+				err = c.conn.WriteJSON(underdarkLoadVariant(message.Content))
+			case "load:map":
+				err = c.conn.WriteJSON(underdarkLoadMap(message.Content))
+			case "load:binpreview":
+				err = c.conn.WriteJSON(underdarkLoadBinPreview(message.Content))
+			case "load:bin":
+				err = c.conn.WriteJSON(underdarkLoadBin(message.Content))
+			case "search:infos":
+				err = c.conn.WriteJSON(underdarkSearch(message.Content))
+			}
+
+			if err != nil {
+				log.Println(err)
+			}
+
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func serveUnderdark(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	client := &Client{conn: conn, send: make(chan RequestMessage, 256)}
+	go client.write()
+	client.read()
 }
 
 func main() {
