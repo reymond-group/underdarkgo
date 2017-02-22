@@ -145,7 +145,7 @@ func underdarkLoadVariant(data []string) VariantResponseMessage {
 	buf, err := ioutil.ReadFile(variants[variantId].CoordinatesFile)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error loading variant: %v", err)
 	}
 
 	return VariantResponseMessage{
@@ -161,7 +161,7 @@ func underdarkLoadMap(data []string) MapResponseMessage {
 	buf, err := ioutil.ReadFile(colorMaps[colorMapId].MapFile)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error loading map: %v", err)
 	}
 
 	return MapResponseMessage{
@@ -180,7 +180,7 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	file, err := os.Open(fingerprints[fingerprintId].InfosFile)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error loading variant, returning empty response: %v", err)
 		return BinPreviewResponseMessage{}
 	}
 
@@ -190,7 +190,7 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	compounds := variantIndices[variantId][binIndex]
 
 	if len(compounds) < 1 {
-		log.Println("No compounds found at binIndex " + strconv.Itoa(binIndex))
+		log.Printf("No compounds found at binIndex %s.", strconv.Itoa(binIndex))
 		return BinPreviewResponseMessage{
 			Command: "load:binpreview",
 			Smiles:  "",
@@ -222,7 +222,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	infoFile, err := os.Open(fingerprints[fingerprintId].InfosFile)
 
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error loading bin: %v", err)
 	}
 
 	defer infoFile.Close()
@@ -251,7 +251,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		coords[i] = infos[3]
 
 		if err != nil {
-			log.Println(err)
+			log.Printf("Error loading bin: %v", err)
 		}
 	}
 
@@ -278,7 +278,8 @@ func underdarkSearch(data []string) SearchResponseMessage {
 	result, err := search(fingerprintId, variantId, filteredSearchTerms)
 
 	if err != nil {
-		log.Print("Error while searching:", err)
+		log.Printf("Error while searching: %v", err)
+
 		return SearchResponseMessage{
 			Command:     "search:infos",
 			BinIndices:  nil,
@@ -308,7 +309,7 @@ func (c *Client) read() {
 
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Printf("Error: %v", err)
+				log.Printf("Error during reading: %v", err)
 			}
 			break
 		}
@@ -341,7 +342,6 @@ func (c *Client) write() {
 
 			switch message.Command {
 			case "init":
-				log.Println(underdarkInit(message.Content))
 				err = c.conn.WriteJSON(underdarkInit(message.Content))
 			case "load:variant":
 				err = c.conn.WriteJSON(underdarkLoadVariant(message.Content))
@@ -356,7 +356,7 @@ func (c *Client) write() {
 			}
 
 			if err != nil {
-				log.Println(err)
+				log.Printf("Error during writing: %v", err)
 			}
 
 		case <-ticker.C:
@@ -372,7 +372,7 @@ func serveUnderdark(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error while upgrading connection: %v", err)
 		return
 	}
 
@@ -426,8 +426,6 @@ func loadIndices() {
 		indicesLength, _ := countLines(variant.IndicesFile)
 
 		variantIndices[variant.Id] = make([][]uint32, indicesLength)
-
-		log.Println("Reading " + variant.IndicesFile + " ...")
 
 		err := readVariantIndexFile(variant.IndicesFile, variant.Id)
 		if err != nil {
