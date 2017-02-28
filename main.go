@@ -41,6 +41,12 @@ type VariantResponseMessage struct {
 	Id      string `json:"id"`
 }
 
+type StatsResponseMessage struct {
+	Command string `json:"cmd"`
+	Content Stats  `json:"msg"`
+	Id      string `json:"id"`
+}
+
 type MapResponseMessage struct {
 	Command string `json:"cmd"`
 	Content string `json:"msg"`
@@ -110,6 +116,15 @@ type Database struct {
 	Fingerprints []Fingerprint `json:"fingerprints"`
 }
 
+type Stats struct {
+	CompoundCount uint32   `json:"compoundCount"`
+	BinCount      uint32   `json:"binCount"`
+	AvgBinSize    float32  `json:"avgCompoundCount"`
+	BinHist       []uint32 `json:"binHist"`
+	HistMin       uint32   `json:"histMin"`
+	HistMax       uint32   `json:"histMax"`
+}
+
 type Configuration struct {
 	Databases []Database `json:"databases"`
 }
@@ -126,6 +141,7 @@ var databases = map[string]Database{}
 var fingerprints = map[string]Fingerprint{}
 var variants = map[string]Variant{}
 var colorMaps = map[string]ColorMap{}
+var stats = map[string]Stats{}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -151,6 +167,16 @@ func underdarkLoadVariant(data []string) VariantResponseMessage {
 	return VariantResponseMessage{
 		Command: "load:variant",
 		Content: string(buf),
+		Id:      variantId,
+	}
+}
+
+func underdarkLoadStats(data []string) StatsResponseMessage {
+	variantId := data[0]
+
+	return StatsResponseMessage{
+		Command: "load:stats",
+		Content: stats[variantId],
 		Id:      variantId,
 	}
 }
@@ -229,6 +255,9 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 	// Get the indices in the bin
 	compounds := variantIndices[variantId][binIndex]
+
+	// Search for nearest neighbours if there are less than 5 compounds
+	// in the bin
 
 	length := len(compounds)
 	ids := make([]string, length)
@@ -345,6 +374,8 @@ func (c *Client) write() {
 				err = c.conn.WriteJSON(underdarkInit(message.Content))
 			case "load:variant":
 				err = c.conn.WriteJSON(underdarkLoadVariant(message.Content))
+			case "load:stats":
+				err = c.conn.WriteJSON(underdarkLoadStats(message.Content))
 			case "load:map":
 				err = c.conn.WriteJSON(underdarkLoadMap(message.Content))
 			case "load:binpreview":
@@ -677,6 +708,9 @@ func readVariantIndexFile(path string, id string) error {
 		i++
 	}
 
+	// Load the stats for this variant
+	stats[id] = calcStats(id)
+
 	return err
 }
 
@@ -756,4 +790,40 @@ func filterSearchTerms(terms []string) []string {
 	}
 
 	return filtered
+}
+
+func calcStats(variantId string) Stats {
+	nBins := len(variantIndices[variantId])
+	nCompounds := 0
+	max := 0
+	min := 9999
+
+	for i := 0; i < nBins; i++ {
+		n := len(variantIndices[variantId][i])
+		nCompounds += n
+
+		if n > max {
+			max = n
+		}
+
+		if n < min {
+			min = n
+		}
+	}
+
+	var hist = make([]uint32, max+1)
+
+	for i := 0; i < nBins; i++ {
+		n := len(variantIndices[variantId][i])
+		hist[n]++
+	}
+
+	return Stats{
+		CompoundCount: uint32(nCompounds),
+		BinCount:      uint32(nBins),
+		AvgBinSize:    float32(nCompounds / nBins),
+		BinHist:       hist,
+		HistMin:       uint32(min),
+		HistMax:       uint32(max),
+	}
 }
