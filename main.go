@@ -133,7 +133,7 @@ var dataDir string
 var config Configuration
 
 var variantIndices = map[string][][]uint32{}
-var infoOffsets = map[string][]uint32{}
+var infoOffsets = map[string][]uint64{}
 var infoLengths = map[string][]uint32{}
 
 // Allow fast access by id
@@ -439,7 +439,7 @@ func loadIndices() {
 		// Loading info indices and lengths
 		infosLength, _ := countLines(fingerprint.InfoIndicesFile)
 
-		infoOffsets[fingerprint.Id] = make([]uint32, infosLength)
+		infoOffsets[fingerprint.Id] = make([]uint64, infosLength)
 		infoLengths[fingerprint.Id] = make([]uint32, infosLength)
 
 		log.Println("Reading " + fingerprint.InfoIndicesFile + " ...")
