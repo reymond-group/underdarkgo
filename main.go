@@ -227,10 +227,11 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 
 	infoOffset := infoOffsets[fingerprintId][compounds[0]]
 	infoLength := infoLengths[fingerprintId][compounds[0]]
-
+	log.Println(infoOffset)
+	log.Println(int64(infoOffset))
 	buf := make([]byte, int64(infoLength))
 	rn, err := file.ReadAt(buf, int64(infoOffset))
-
+	log.Println(strings.Split(string(buf[:rn-1]), " "))
 	return BinPreviewResponseMessage{
 		Command: "load:binpreview",
 		Smiles:  strings.Split(string(buf[:rn-1]), " ")[1],
@@ -262,7 +263,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	length := len(compounds)
 	ids := make([]string, length)
 	smiles := make([]string, length)
-	fps := make([]string, length)
+	// fps := make([]string, length)
 	coords := make([]string, length)
 
 	for i := 0; i < length; i++ {
@@ -276,8 +277,8 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 		ids[i] = infos[0]
 		smiles[i] = infos[1]
-		fps[i] = infos[2]
-		coords[i] = infos[3]
+		// fps[i] = infos[2]
+		coords[i] = infos[2]
 
 		if err != nil {
 			log.Printf("Error loading bin: %v", err)
@@ -289,7 +290,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		Smiles:  smiles,
 		Ids:     ids,
 		Coords:  coords,
-		Fps:     fps,
+		Fps:     nil,
 		Index:   data[3],
 		BinSize: strconv.Itoa(len(compounds)),
 	}
@@ -660,7 +661,7 @@ func countLines(path string) (int, error) {
 	}
 }
 
-func readIndexFile(path string, offsets []uint32, lengths []uint32) error {
+func readIndexFile(path string, offsets []uint64, lengths []uint32) error {
 	r, err := os.Open(path)
 	scanner := bufio.NewScanner(r)
 
@@ -672,7 +673,7 @@ func readIndexFile(path string, offsets []uint32, lengths []uint32) error {
 		offset, _ := strconv.ParseUint(values[0], 10, 32)
 		length, _ := strconv.ParseUint(values[1], 10, 16)
 
-		offsets[i] = uint32(offset)
+		offsets[i] = uint64(offset)
 		lengths[i] = uint32(length)
 
 		i++
