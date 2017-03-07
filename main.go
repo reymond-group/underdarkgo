@@ -144,6 +144,7 @@ var colorMaps = map[string]ColorMap{}
 var stats = map[string]Stats{}
 
 var upgrader = websocket.Upgrader{
+	EnableCompression: true,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
