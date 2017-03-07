@@ -17,7 +17,7 @@ import (
 )
 
 const writeWait = 100 * time.Second
-const pongWait = 60 * time.Second
+const pongWait = 120 * time.Second
 const pingPeriod = (pongWait * 9) / 10
 
 type Client struct {
@@ -227,11 +227,8 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 
 	infoOffset := infoOffsets[fingerprintId][compounds[0]]
 	infoLength := infoLengths[fingerprintId][compounds[0]]
-	log.Println(infoOffset)
-	log.Println(int64(infoOffset))
 	buf := make([]byte, int64(infoLength))
 	rn, err := file.ReadAt(buf, int64(infoOffset))
-	log.Println(strings.Split(string(buf[:rn-1]), " "))
 	return BinPreviewResponseMessage{
 		Command: "load:binpreview",
 		Smiles:  strings.Split(string(buf[:rn-1]), " ")[1],
@@ -244,7 +241,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	// databaseId := data[0]
 	fingerprintId := data[1]
 	variantId := data[2]
-	binIndex, _ := strconv.Atoi(data[3])
+	binIndices := stringToIntArray(strings.Split(data[3], ","))
 
 	infoFile, err := os.Open(fingerprints[fingerprintId].InfosFile)
 
@@ -255,7 +252,12 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	defer infoFile.Close()
 
 	// Get the indices in the bin
-	compounds := variantIndices[variantId][binIndex]
+
+	compounds := variantIndices[variantId][binIndices[0]]
+
+	for i := 1; i < len(binIndices); i++ {
+		compounds = append(compounds, binIndices[i])
+	}
 
 	// Search for nearest neighbours if there are less than 5 compounds
 	// in the bin
@@ -827,4 +829,20 @@ func calcStats(variantId string) Stats {
 		HistMin:       uint32(min),
 		HistMax:       uint32(max),
 	}
+}
+
+func stringToIntArray(arr []string) []uint32 {
+	var result = []uint32{}
+
+	for _, i := range arr {
+		j, err := strconv.Atoi(i)
+
+		if err != nil {
+			log.Println(err)
+		}
+
+		result = append(result, uint32(j))
+	}
+
+	return result
 }
