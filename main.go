@@ -257,6 +257,10 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 	compounds := variantIndices[variantId][binIndices[0]]
 	var compoundBinIndices []uint32
+
+	for i := 0; i < len(compounds); i++ {
+		compoundBinIndices = append(compoundBinIndices, binIndices[i])
+	}
 	
 	for i := 1; i < len(binIndices); i++ {
 		compoundsInBin := variantIndices[variantId][binIndices[i]]
