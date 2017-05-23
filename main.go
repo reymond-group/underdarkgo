@@ -61,13 +61,14 @@ type BinPreviewResponseMessage struct {
 }
 
 type BinResponseMessage struct {
-	Command string   `json:"cmd"`
-	Smiles  []string `json:"smiles"`
-	Ids     []string `json:"ids"`
-	Coords  []string `json:"coordinates"`
-	Fps     []string `json:"fps"`
-	Index   string   `json:"index"`
-	BinSize string   `json:"binSize"`
+	Command 	string   `json:"cmd"`
+	Smiles  	[]string `json:"smiles"`
+	Ids     	[]string `json:"ids"`
+	Coords  	[]string `json:"coordinates"`
+	Fps     	[]string `json:"fps"`
+	BinIndices	[]uint32 `json:"binIndices"`
+	Index   	string   `json:"index"`
+	BinSize 	string   `json:"binSize"`
 }
 
 type SearchResponseMessage struct {
@@ -255,13 +256,16 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	// Get the indices in the bin
 
 	compounds := variantIndices[variantId][binIndices[0]]
-
+	var compoundBinIndices []uint32
+	
 	for i := 1; i < len(binIndices); i++ {
-		compounds = append(compounds, binIndices[i])
-	}
+		compoundsInBin := variantIndices[variantId][binIndices[i]]
+		compounds = append(compounds, compoundsInBin ...)
 
-	// Search for nearest neighbours if there are less than 5 compounds
-	// in the bin
+		for j := 0; j < len(compoundsInBin); j++ {
+			compoundBinIndices = append(compoundBinIndices, binIndices[i])
+		}
+	}
 
 	length := len(compounds)
 	ids := make([]string, length)
@@ -289,13 +293,14 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	}
 
 	return BinResponseMessage{
-		Command: "load:bin",
-		Smiles:  smiles,
-		Ids:     ids,
-		Coords:  coords,
-		Fps:     nil,
-		Index:   data[3],
-		BinSize: strconv.Itoa(len(compounds)),
+		Command: 	"load:bin",
+		Smiles:  	smiles,
+		Ids:     	ids,
+		Coords:  	coords,
+		Fps:     	nil,
+		BinIndices: compoundBinIndices,
+		Index:   	data[3],
+		BinSize: 	strconv.Itoa(len(compounds)),
 	}
 }
 
