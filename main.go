@@ -270,7 +270,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	length := len(compounds)
 	ids := make([]string, length)
 	smiles := make([]string, length)
-	// fps := make([]string, length)
+	fps := make([]string, length)
 	coords := make([]string, length)
 
 	for i := 0; i < length; i++ {
@@ -284,7 +284,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 		ids[i] = infos[0]
 		smiles[i] = infos[1]
-		// fps[i] = infos[2]
+		fps[i] = infos[2]
 		coords[i] = infos[2]
 
 		if err != nil {
@@ -297,7 +297,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		Smiles:  	smiles,
 		Ids:     	ids,
 		Coords:  	coords,
-		Fps:     	nil,
+		Fps:     	fps,
 		BinIndices: compoundBinIndices,
 		Index:   	data[3],
 		BinSize: 	strconv.Itoa(len(compounds)),
