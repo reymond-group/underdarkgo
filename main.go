@@ -259,7 +259,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	var compoundBinIndices []uint32
 
 	for i := 0; i < len(compounds); i++ {
-		compoundBinIndices = append(compoundBinIndices, binIndices[i])
+		compoundBinIndices = append(compoundBinIndices, binIndices[0])
 	}
 	
 	for i := 1; i < len(binIndices); i++ {
