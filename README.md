@@ -3,7 +3,7 @@
 ## Getting Started
 The easiest way to get started with Underdark Go is pulling and running the docker image.
 ```
-docker run -d -p 80:8081 -v /your/host/dir:/underdarkgo/data --name underdark daenuprobst/underdark
+docker run -d -p 80:8081 -v /your/host/dir:/underdarkgo/data --name underdark daenuprobst/underdark-go
 ```
 Underdark Go exposes port `8081` by default. Depending on your network settings and topology you might want to change this using the `-p` argument (see example above). The directory `/underdarkgo/data` has to be mounted to a host directory (`/your/host/dir` in the example above) where a configuration file `config.json` describes the data within a sub-directory.
 ## Configuration
