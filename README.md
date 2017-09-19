@@ -110,5 +110,5 @@ go get github.com/gorilla/websocket
 ```
 You can the build the project
 ```bash
-go build main.go
+go build -o underdarkgo main.go
 ```
