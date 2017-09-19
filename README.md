@@ -96,7 +96,7 @@ mkdir ~/go/bin
 Edit `~/.profile` by adding (at the end)
 ```bash
 export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$PATH:/usr/local/go/bin
+export GOPATH=/usr/local/go/bin
 export GOBIN=$HOME/go/bin
 # GOBIN is set to the directory created in the previous step
 ```
