@@ -1,6 +1,6 @@
 ![Underdark Go](https://github.com/reymond-group/underdarkgo/blob/master/logo.png?raw=true)
 
-If you use this code or application, please cite the original paper published by Bioinformatics: ![10.1093/bioinformatics/btx760](http://dx.doi.org/10.1093/bioinformatics/btx760)
+If you use this code or application, please cite the original paper published by Bioinformatics: [10.1093/bioinformatics/btx760](http://dx.doi.org/10.1093/bioinformatics/btx760)
 # Underdark Go
 
 **For a complete overview and detailed installation instructions for this project, please visit the [project website](http://doc.gdb.tools/fun).**
