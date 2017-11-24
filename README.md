@@ -1,5 +1,8 @@
 ![Underdark Go](https://github.com/reymond-group/underdarkgo/blob/master/logo.png?raw=true)
 # Underdark Go
+
+**For a complete overview and detailed installation instructions for this project, please visit the [project website](http://doc.gdb.tools/fun).**
+
 ## Getting Started
 The easiest way to get started with Underdark Go is pulling and running the docker image.
 ```
