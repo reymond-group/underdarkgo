@@ -82,6 +82,8 @@ The directory structure of the above example would thus look like this
         |-- acmebase2.xfp.info
         |-- acmebase2.xfp.info.index
         +-- 250
+            |-- acmebase2.xfp.250.dat
+            |-- acmebase2.xfp.250.xyz
             |-- acmebase2.xfp.250.1.map
 ```
 All files can be generated from initial files containing one molecular fingerprint (of any type) per line. Python 3.x scripts as well as a bash script for automation can be found [here](https://github.com/reymond-group/pca). This repository also contains a dockerized flask based project to enable the PCA projection of additional molecular fingerprints using the models generated for the initial data set.
