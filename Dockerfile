@@ -1,4 +1,4 @@
-FROM golang:1.7
+FROM golang:1.10.2
 
 # Create the directories needed
 RUN mkdir -p /underdarkgo

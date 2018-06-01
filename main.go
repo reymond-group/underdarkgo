@@ -231,6 +231,20 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	infoLength := infoLengths[fingerprintId][compounds[0]]
 	buf := make([]byte, int64(infoLength))
 	rn, err := file.ReadAt(buf, int64(infoOffset))
+
+	line := string(buf[:rn-1])
+	smiles := strings.Split(line, " ")
+
+	if len(smiles) < 1 {
+		log.Printf("No smiles found at binIndex %s. Line content: %s", strconv.Itoa(binIndex), line)
+		return BinPreviewResponseMessage{
+			Command: "load:binpreview",
+			Smiles:  "",
+			Index:   "",
+			BinSize: "0",
+		}
+	}
+
 	return BinPreviewResponseMessage{
 		Command: "load:binpreview",
 		Smiles:  strings.Split(string(buf[:rn-1]), " ")[1],
