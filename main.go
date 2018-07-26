@@ -130,6 +130,8 @@ type Configuration struct {
 	Databases []Database `json:"databases"`
 }
 
+var debug bool
+
 var dataDir string
 var config Configuration
 
@@ -163,7 +165,7 @@ func underdarkLoadVariant(data []string) VariantResponseMessage {
 	buf, err := ioutil.ReadFile(variants[variantId].CoordinatesFile)
 
 	if err != nil {
-		log.Printf("Error loading variant: %v", err)
+		fmt.Printf("Error loading variant: %v", err)
 	}
 
 	return VariantResponseMessage{
@@ -189,7 +191,7 @@ func underdarkLoadMap(data []string) MapResponseMessage {
 	buf, err := ioutil.ReadFile(colorMaps[colorMapId].MapFile)
 
 	if err != nil {
-		log.Printf("Error loading map: %v", err)
+		fmt.Printf("Error loading map: %v", err)
 	}
 
 	return MapResponseMessage{
@@ -205,10 +207,14 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	variantId := data[2]
 	binIndex, _ := strconv.Atoi(data[3])
 
+	if debug {
+		fmt.Printf("Bin preview for index %d in file %s\n", binIndex, fingerprints[fingerprintId].InfosFile)
+	}
+
 	file, err := os.Open(fingerprints[fingerprintId].InfosFile)
 
 	if err != nil {
-		log.Printf("Error loading variant, returning empty response: %v", err)
+		fmt.Printf("Error loading variant, returning empty response: %v\n", err)
 		return BinPreviewResponseMessage{}
 	}
 
@@ -218,7 +224,7 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	compounds := variantIndices[variantId][binIndex]
 
 	if len(compounds) < 1 {
-		log.Printf("No compounds found at binIndex %s.", strconv.Itoa(binIndex))
+		fmt.Printf("No compounds found at binIndex %s.", strconv.Itoa(binIndex))
 		return BinPreviewResponseMessage{
 			Command: "load:binpreview",
 			Smiles:  "",
@@ -236,12 +242,17 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 	smiles := strings.Split(line, " ")
 
 	if len(smiles) < 1 {
-		log.Printf("No smiles found at binIndex %s. Line content: %s", strconv.Itoa(binIndex), line)
+		fmt.Printf("No smiles found at binIndex %s. Line content: %s\n", strconv.Itoa(binIndex), line)
 		return BinPreviewResponseMessage{
 			Command: "load:binpreview",
 			Smiles:  "",
 			Index:   "",
 			BinSize: "0",
+		}
+	} else {
+		if debug {
+			fmt.Printf("Loading smiles from offset %d with length %d:\n%s %s\n", int64(infoOffset), int64(infoLength), smiles[0], smiles[1])
+			fmt.Printf("Returning smiles %s\n", strings.Split(string(buf[:rn-1]), " ")[1])
 		}
 	}
 
@@ -262,7 +273,7 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	infoFile, err := os.Open(fingerprints[fingerprintId].InfosFile)
 
 	if err != nil {
-		log.Printf("Error loading bin: %v", err)
+		fmt.Printf("Error loading bin: %v", err)
 	}
 
 	defer infoFile.Close()
@@ -443,6 +454,13 @@ func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Example: " + os.Args[0] + " <data-path>")
 		os.Exit(1)
+	}
+
+	if os.Getenv("DEBUG") == "TRUE" {
+		fmt.Println("Debug mode")
+		debug = true
+	} else {
+		debug = false
 	}
 
 	dataDir = os.Args[1]
@@ -696,7 +714,7 @@ func readIndexFile(path string, offsets []uint64, lengths []uint32) error {
 		line := scanner.Text()
 		values := strings.Split(line, ",")
 
-		offset, _ := strconv.ParseUint(values[0], 10, 32)
+		offset, _ := strconv.ParseUint(values[0], 10, 64)
 		length, _ := strconv.ParseUint(values[1], 10, 16)
 
 		offsets[i] = uint64(offset)
