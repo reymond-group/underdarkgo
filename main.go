@@ -780,7 +780,10 @@ func search(fingerprintId string, variantId string, terms []string) ([][]uint32,
 		val := string(buf[:rn-1])
 
 		for j := 0; j < nTerms; j++ {
-			if strings.Contains(val, terms[j]) {
+			sp := strings.Split(val, " ")
+			if sp[0] == terms[j] {
+				results[j] = append(results[j], uint32(i))
+			} else if sp[1] == terms[j] {
 				results[j] = append(results[j], uint32(i))
 			}
 		}
