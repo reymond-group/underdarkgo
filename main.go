@@ -220,6 +220,17 @@ func underdarkLoadBinPreview(data []string) BinPreviewResponseMessage {
 
 	defer file.Close()
 
+	// Make sure that the binIndex exists and avoid out of range
+	if len(variantIndices[variantId]) <= binIndex {
+		fmt.Printf("binIndex %s is out of range.", strconv.Itoa(binIndex))
+		return BinPreviewResponseMessage{
+			Command: "load:binpreview",
+			Smiles:  "",
+			Index:   "",
+			BinSize: "0",
+		}
+	}
+
 	// Get the indices in the bin
 	compounds := variantIndices[variantId][binIndex]
 
@@ -278,8 +289,17 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 
 	defer infoFile.Close()
 
-	// Get the indices in the bin
+	// Check whether binIndex is within range
+	if uint32(len(variantIndices[variantId])) <= binIndices[0] {
+		fmt.Printf("binIndex %s is out of range.", strconv.FormatUint(uint64(binIndices[0]), 10))
+		return BinResponseMessage{
+			Command: 	"load:bin",
+			Index:   	data[3],
+			BinSize: 	"0",
+		}
+	}
 
+	// Get the indices in the bin
 	compounds := variantIndices[variantId][binIndices[0]]
 	var compoundBinIndices []uint32
 
@@ -288,6 +308,15 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 	}
 	
 	for i := 1; i < len(binIndices); i++ {
+		if uint32(len(variantIndices[variantId])) <= binIndices[i] {
+			fmt.Printf("binIndex %s is out of range.", strconv.FormatUint(uint64(binIndices[i]), 10))
+			return BinResponseMessage{
+				Command: 	"load:bin",
+				Index:   	data[3],
+				BinSize: 	"0",
+			}
+		}
+
 		compoundsInBin := variantIndices[variantId][binIndices[i]]
 		compounds = append(compounds, compoundsInBin ...)
 
