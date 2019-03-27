@@ -340,6 +340,16 @@ func underdarkLoadBin(data []string) BinResponseMessage {
 		info := string(buf[:rn-1])
 		infos := strings.Split(info, " ")
 
+		if len(infos) < 3 {
+			log.Printf("Failed to load infos from file %s.", fingerprints[fingerprintId].InfosFile)
+			log.Printf("Line loaded: %s.", info)
+			return BinResponseMessage{
+				Command: 	"load:bin",
+				Index:   	data[3],
+				BinSize: 	"0",
+			}
+		}
+
 		ids[i] = infos[0]
 		smiles[i] = infos[1]
 		fps[i] = infos[2]
